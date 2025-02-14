@@ -1,66 +1,76 @@
 <?php
+header("Content-Type: application/json");
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Methods: GET, POST");
+
+
 include 'connection.php';
 
-
-function get_students() {
-    global $conn;
-    $result = mysqli_query($conn, "SELECT * FROM student");
-    $students = mysqli_fetch_all($result, MYSQLI_ASSOC);
-    echo json_encode($students);
+$method = $_SERVER['REQUEST_METHOD'];
+if ($method == "GET") {
+    if (isset($_GET['id'])) {
+        get_student($_GET['id']);
+    } else {
+        get_students();
+    }
+} elseif ($method == "POST") {
+    insert_student();
+} else {
+    echo json_encode(["message" => "Invalid request method"]);
 }
 
-function add_student() {
+function get_students()
+{
+    global $conn;
+    $sql = "SELECT * FROM student";
+    $result = mysqli_query($conn, $sql);
+
+    if (mysqli_num_rows($result) > 0) {
+        $students = [];
+        while ($row = mysqli_fetch_assoc($result)) {
+            $students[] = $row;
+        }
+        echo json_encode($students);
+    } else {
+        echo json_encode(["message" => "No students found"]);
+    }
+}
+
+function get_student($id)
+{
+    global $conn;
+    $sql = "SELECT * FROM students WHERE id = ?";
+    $stmt = mysqli_prepare($conn, $sql);
+    mysqli_stmt_bind_param($stmt, "i", $id);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+    
+    if ($row = mysqli_fetch_assoc($result)) {
+        echo json_encode($row);
+    } else {
+        echo json_encode(["message" => "Student not found"]);
+    }
+}
+
+function insert_student()
+{
     global $conn;
     $data = json_decode(file_get_contents("php://input"), true);
 
-    $name = mysqli_real_escape_string($conn, $data['student_name']);
-    $number = mysqli_real_escape_string($conn, $data['student_number']);
-    $age = mysqli_real_escape_string($conn, $data['student_age']);
+    if (isset($data["student_name"]) && isset($data["student_number"]) && isset($data["student_age"])) {
+        $sql = "INSERT INTO student (student_name, student_number, student_age) VALUES (?, ?, ?)";
+        $stmt = mysqli_prepare($conn, $sql);
+        mysqli_stmt_bind_param($stmt, "ssi", $data["student_name"], $data["student_number"], $data["student_age"]);
 
-    $sql = "INSERT INTO student (student_name, student_number, student_age) VALUES ('$name', '$number', $age)";
-
-    if (mysqli_query($conn, $sql)) {
-        echo json_encode(["status" => "success", "message" => "Student added"]);
-    } else {
-        echo json_encode(["status" => "error", "message" => mysqli_error($conn)]);
-    }
-}
-
-function update_student($id, $name, $number, $age)
-{
-    global $conn;
-    $sql = "UPDATE student SET student_name=?, student_number=?, student_age=? WHERE id=?";
-    $stmt = mysqli_prepare($conn, $sql);
-    mysqli_stmt_bind_param($stmt, "ssii", $name, $number, $age, $id);
-
-    if (mysqli_stmt_execute($stmt)) {
-        return "Student updated successfully.";
-    } else {
-        return "Error updating student: " . mysqli_error($conn);
-    }
-}
-
-function delete_student($id)
-{
-    global $conn;
-    $sql = "DELETE FROM student WHERE id=?";
-    $stmt = mysqli_prepare($conn, $sql);
-    mysqli_stmt_bind_param($stmt, "i", $id);
-
-    if (mysqli_stmt_execute($stmt)) {
-        return "Student deleted successfully.";
-    } else {
-        return "Error deleting student: " . mysqli_error($conn);
-    }
-}
-
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    if (isset($_POST["action"])) {
-        if ($_POST["action"] == "update") {
-            echo update_student($_POST["id"], $_POST["name"], $_POST["number"], $_POST["age"]);
-        } elseif ($_POST["action"] == "delete") {
-            echo delete_student($_POST["id"]);
+        if (mysqli_stmt_execute($stmt)) {
+            echo json_encode(["message" => "Student inserted successfully"]);
+        } else {
+            echo json_encode(["message" => "Failed to insert student"]);
         }
+    } else {
+        echo json_encode(["message" => "Invalid input"]);
     }
 }
+
+
 ?>
