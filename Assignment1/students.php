@@ -1,6 +1,31 @@
 <?php
 include 'connection.php';
 
+
+function get_students() {
+    global $conn;
+    $result = mysqli_query($conn, "SELECT * FROM student");
+    $students = mysqli_fetch_all($result, MYSQLI_ASSOC);
+    echo json_encode($students);
+}
+
+function add_student() {
+    global $conn;
+    $data = json_decode(file_get_contents("php://input"), true);
+
+    $name = mysqli_real_escape_string($conn, $data['student_name']);
+    $number = mysqli_real_escape_string($conn, $data['student_number']);
+    $age = mysqli_real_escape_string($conn, $data['student_age']);
+
+    $sql = "INSERT INTO student (student_name, student_number, student_age) VALUES ('$name', '$number', $age)";
+
+    if (mysqli_query($conn, $sql)) {
+        echo json_encode(["status" => "success", "message" => "Student added"]);
+    } else {
+        echo json_encode(["status" => "error", "message" => mysqli_error($conn)]);
+    }
+}
+
 function update_student($id, $name, $number, $age)
 {
     global $conn;
