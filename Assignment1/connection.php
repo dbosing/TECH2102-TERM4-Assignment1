@@ -1,6 +1,6 @@
 <?php
 
-$servername = "localhost";
+$servername = "localhost:your_port_number";
 $username = "root";
 $password = your_mysql_password;
 $dbname = "students";
