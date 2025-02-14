@@ -7,3 +7,7 @@ CREATE TABLE student (
     student_number int not null,
     student_age INT not null
 );
+
+INSERT INTO student (student_name, student_number, student_age)
+VALUES 
+('Nkem', '450', 20);
